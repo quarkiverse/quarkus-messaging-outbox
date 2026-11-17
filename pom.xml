@@ -33,7 +33,7 @@
         <quarkus.version>4.0.0.CR1</quarkus.version>
         <assertj-core.version>3.27.3</assertj-core.version>
         <!-- The Debezium record source. Not managed by the Quarkus BOM. -->
-        <debezium.version>3.7.0.Final</debezium.version>
+        <debezium.version>3.7.1.Final</debezium.version>
     </properties>
 
     <dependencyManagement>
