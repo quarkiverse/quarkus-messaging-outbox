@@ -262,8 +262,12 @@ public class HibernateOrmStoreTest {
                 new ClaimRequest(1, Duration.ofSeconds(30), true, Set.of()))
                 .await().indefinitely();
 
-        store.park(claimed.get(0), new RuntimeException("permanent failure"))
+        OutboxRecord record = claimed.get(0);
+        record.setAttempts(3);
+        store.park(record, new RuntimeException("permanent failure"))
                 .await().indefinitely();
+        // The attempts that led to parking are kept on the row.
+        assertThat(service.attemptsOf(record.getId())).isEqualTo(3);
 
         List<OutboxRecord> after = store.claim(
                 new ClaimRequest(10, Duration.ofSeconds(30), true, Set.of()))
@@ -840,6 +844,14 @@ public class HibernateOrmStoreTest {
                     "update OutboxRecordEntity set channel = null where channel = 'test-channel'")
                     .executeUpdate();
             sessionFactory.getCurrentSession().flush();
+        }
+
+        @Transactional
+        public int attemptsOf(java.util.UUID outboxId) {
+            return sessionFactory.getCurrentSession()
+                    .createSelectionQuery("select attempts from OutboxRecordEntity where outboxId = :id", Integer.class)
+                    .setParameter("id", outboxId)
+                    .getSingleResult();
         }
 
         @Transactional

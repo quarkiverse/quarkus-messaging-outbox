@@ -249,6 +249,7 @@ public class HibernateOrmOutboxStore implements OutboxStore {
                     checkLeaseOwnership(session);
                     OutboxRecordEntity entity = findRecord(session, record.getId());
                     entity.setStatus(OutboxRecord.STATUS_FAILED);
+                    entity.setAttempts(record.getAttempts());
                     entity.setLastError(
                             failure != null ? truncate(failure.getMessage(), OutboxRecordEntity.LAST_ERROR_LENGTH) : null);
                     entity.setClaimedBy(null);

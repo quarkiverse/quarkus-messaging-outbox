@@ -241,6 +241,7 @@ public class HibernateReactiveOutboxStore implements OutboxStore {
                 .chain(e -> {
                     if (e != null) {
                         e.setStatus(OutboxRecord.STATUS_FAILED);
+                        e.setAttempts(record.getAttempts());
                         e.setLastError(
                                 failure != null ? truncate(failure.getMessage(), OutboxRecordEntity.LAST_ERROR_LENGTH) : null);
                         e.setClaimedBy(null);
