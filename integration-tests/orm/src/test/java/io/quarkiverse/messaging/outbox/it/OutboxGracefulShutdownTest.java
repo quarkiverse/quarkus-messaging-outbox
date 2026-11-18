@@ -23,6 +23,13 @@ public class OutboxGracefulShutdownTest {
 
     @Test
     void f13_noClaimedRecordsOrPendingAfterBatchDelivery() {
+        // Wait for records from other tests (e.g. the dedup store that fails delivered() once) to settle.
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+            long pending = Long.parseLong(given().when().get("/outbox/outbox-table/pending")
+                    .then().statusCode(200).extract().body().asString());
+            assertThat(pending).isZero();
+        });
+
         given().queryParam("count", 20)
                 .when().post("/outbox/send-batch")
                 .then().statusCode(204);

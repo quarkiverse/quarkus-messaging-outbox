@@ -46,6 +46,8 @@ The SPI, the stores, the mapper, the connectors and the record sources are separ
 - **Tracing is a cross-cutting converter.** It stores `traceparent` and restores it, so the send span links to the business request.
 - **Channel configuration is not stored.** The topic, the serializers and the connector defaults apply when the relay sends. Only explicit per-message metadata is stored.
 - **The outbox id reaches consumers as a broker header**, `outbox-id` on Kafka. It is stable across retries, so consumers can deduplicate on it.
+- **The emitter assigns the outbox id**, right after the mapper builds the record and before anything reads it: the direct send in fallback mode, the converters, the store. The application can choose it with `OutboxMetadata.withId`. Mappers used to generate it, which the SPI never said, so a custom mapper that did not left fallback sends without an id and let the store generate a different one.
+- **Artemis duplicate detection.** The AMQP converter always sets `_AMQ_DUPL_ID` to the outbox id, unless the application set it. The property is harmless on non-Artemis brokers and gives Artemis users dedup for free.
 
 ## Write side
 
@@ -115,7 +117,6 @@ The SPI, the stores, the mapper, the connectors and the record sources are separ
   - a per-channel counter row, on any database;
   - an `xmin` visibility horizon on PostgreSQL.
 - **A consumer inbox.** Consumers would store processed outbox ids in the same transaction as their own changes. It works with every broker.
-- **Broker deduplication.** For example, Artemis `_AMQ_DUPL_ID` set from the outbox id.
 - **Upstream follow-ups.**
   - quarkus-reactive-transactions: a public "transaction active" check and an after-commit hook that tells a commit from a rollback.
   - SmallRye: the payload type on `EmitterConfiguration`, and `@Keyed` on fields.

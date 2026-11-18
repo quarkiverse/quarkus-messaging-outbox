@@ -177,6 +177,16 @@ The key is passed to the broker as the Kafka record key, the AMQP group id, or t
 
 Every record has a UUID, the outbox ID. It stays the same across retries and redeliveries, so consumers can deduplicate on it.
 
+The emitter generates it during `send`. To choose it, for example to log it or return it before the message is sent, set it on the message:
+
+[source,java]
+----
+UUID outboxId = UUID.randomUUID();
+emitter.sendMessage(Message.of(event, Metadata.of(OutboxMetadata.withId(outboxId))));
+----
+
+`OutboxMetadata.withId(id, key)` sets the ordering key as well. The ID must be unique: the outbox table rejects a second record with the same ID, and the transaction that sends it fails.
+
 The id reaches consumers as a broker-level header:
 
 [cols="1,2"]
@@ -198,6 +208,34 @@ public void consume(CustomerCreated event, IncomingKafkaRecordMetadata<String, ?
     UUID outboxId = UUID.fromString(new String(header.value(), StandardCharsets.UTF_8));
 }
 ----
+
+An AMQP consumer reads the message id, or the `outbox-id` application property:
+
+[source,java]
+----
+@Incoming("customer-events-in")
+public void consume(CustomerCreated event, IncomingAmqpMetadata metadata) {
+    String outboxId = metadata.getProperties().getString("outbox-id");
+}
+----
+
+A RabbitMQ consumer reads the message-id property, or the `outbox-id` header:
+
+[source,java]
+----
+@Incoming("customer-events-in")
+public void consume(CustomerCreated event, IncomingRabbitMQMetadata metadata) {
+    // The header value may be a RabbitMQ LongString: its toString() is the text.
+    String outboxId = String.valueOf(metadata.getHeaders().get("outbox-id"));
+}
+----
+
+When the application sets its own message id, the outbox keeps it, so the `outbox-id` property or header is the one to deduplicate on: it is always the outbox ID.
+
+The outbox does not set up deduplication on the broker. A consumer keeps the outbox IDs it has processed, for example in a table written in the same transaction as its own changes, and skips a message whose ID it has seen. Some brokers can do part of it:
+
+* ActiveMQ Artemis has duplicate detection, keyed on its `_AMQ_DUPL_ID` property rather than on the message id. The outbox always sets `_AMQ_DUPL_ID` to the outbox ID, so Artemis drops every redelivery after the first. A value the application set in the message's application properties is kept. The property is harmless on non-Artemis AMQP brokers.
+* RabbitMQ classic and quorum queues do not deduplicate messages. Deduplication there needs a plugin or the consumer.
 
 The message the relay sends also carries an `OutboxMetadata` with the outbox ID and the attempt number. It is on the outgoing message only, so outgoing interceptors can read it, but it does not cross the broker: consumers see the header.
 

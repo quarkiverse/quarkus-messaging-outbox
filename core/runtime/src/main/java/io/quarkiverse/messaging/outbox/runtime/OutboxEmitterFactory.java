@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.spi.InjectionPoint;
@@ -156,7 +157,7 @@ public class OutboxEmitterFactory implements EmitterFactory<OutboxEmitterImpl<Ob
                     }
                     return selected.get();
                 })
-                .orElseGet(() -> storeFactories.get());
+                .orElseGet(() -> storeFactories.select(Default.Literal.INSTANCE).get());
     }
 
     private KeyValueExtractor resolveKeyExtractor(OutboxConfig config) {

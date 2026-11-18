@@ -10,7 +10,13 @@ import org.eclipse.microprofile.reactive.messaging.Message;
  */
 public interface OutboxRecordMapper {
 
-    /** Serializes the message payload and builds an {@link OutboxRecord} for the given channel. */
+    /**
+     * Serializes the message payload and builds an {@link OutboxRecord} for the given channel.
+     * <p>
+     * The mapper does not need to set the record's ID: the emitter assigns it after this call, from
+     * {@link io.quarkiverse.messaging.outbox.OutboxMetadata#withId} when the application set one, or a new random
+     * one otherwise.
+     */
     OutboxRecord toRecord(String channel, Message<?> message);
 
     /** Deserializes an {@link OutboxRecord} back into a {@link Message}, using {@code payloadType} for the payload. */

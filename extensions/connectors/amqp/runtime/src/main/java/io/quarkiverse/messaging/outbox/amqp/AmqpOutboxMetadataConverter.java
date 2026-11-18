@@ -22,6 +22,9 @@ public class AmqpOutboxMetadataConverter implements OutboxMetadataConverter {
 
     private static final String PREFIX = "amqp.";
 
+    /** The application property ActiveMQ Artemis keys its duplicate detection on. */
+    static final String ARTEMIS_DUPLICATE_ID = "_AMQ_DUPL_ID";
+
     @Override
     public Optional<String> extractKey(Message<?> message) {
         return message.getMetadata(OutgoingAmqpMetadata.class)
@@ -128,6 +131,7 @@ public class AmqpOutboxMetadataConverter implements OutboxMetadataConverter {
         }
         if (record.getId() != null) {
             appProps.put("outbox-id", record.getId().toString());
+            appProps.putIfAbsent(ARTEMIS_DUPLICATE_ID, record.getId().toString());
         }
         if (!appProps.isEmpty()) {
             builder.withApplicationProperties(new JsonObject(appProps));

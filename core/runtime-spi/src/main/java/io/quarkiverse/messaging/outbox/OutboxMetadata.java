@@ -5,7 +5,7 @@ import java.util.UUID;
 
 /**
  * Metadata attached to every message the relay sends. Applications use it on the send side to set
- * the ordering key, and on the receive side (via outgoing interceptors) to read the outbox ID and
+ * the ordering key or the outbox ID, and on the receive side (via outgoing interceptors) to read the outbox ID and
  * attempt number.
  * <p>
  * Consumers should use the broker-level {@code outbox-id} header for deduplication instead of this
@@ -26,6 +26,20 @@ public class OutboxMetadata {
     /** Creates metadata with an ordering key, for use on the send side. */
     public static OutboxMetadata withKey(String key) {
         return new OutboxMetadata(null, key, 0);
+    }
+
+    /**
+     * Creates metadata that sets the outbox ID, for use on the send side. Without it, the emitter generates a random
+     * one. The ID must be unique: the outbox table rejects a second record with the same ID, which fails the
+     * transaction that sends it.
+     */
+    public static OutboxMetadata withId(UUID id) {
+        return new OutboxMetadata(id, null, 0);
+    }
+
+    /** Creates metadata that sets both the outbox ID and the ordering key, for use on the send side. */
+    public static OutboxMetadata withId(UUID id, String key) {
+        return new OutboxMetadata(id, key, 0);
     }
 
     /** Creates metadata with all fields, used by the relay when building the outgoing message. */

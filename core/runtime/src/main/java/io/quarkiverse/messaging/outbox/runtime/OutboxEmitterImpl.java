@@ -3,6 +3,8 @@ package io.quarkiverse.messaging.outbox.runtime;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Flow.Publisher;
 
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -76,6 +78,7 @@ public class OutboxEmitterImpl<T> implements OutboxEmitter<T>, MessagePublisherP
         Message<? extends T> keyed = enrichWithKey(message);
         Message<? extends T> enriched = unwrapPayload(keyed);
         OutboxRecord record = mapper.toRecord(channel, enriched);
+        assignId(record, keyed);
         // Converters see the message as sent, before a wrapper payload such as Record<K, V> is unwrapped.
         extractMetadata(record, keyed);
         log.debugf("Outbox persisting message on channel '%s'", channel);
@@ -89,6 +92,7 @@ public class OutboxEmitterImpl<T> implements OutboxEmitter<T>, MessagePublisherP
         Message<? extends T> keyed = enrichWithKey(message);
         Message<? extends T> enriched = unwrapPayload(keyed);
         OutboxRecord record = mapper.toRecord(channel, enriched);
+        assignId(record, keyed);
         extractMetadata(record, keyed);
         Type payloadType = resolveType(record.getPayloadType());
         Message<?> wireMessage = restoreMetadata(mapper.toMessage(record, payloadType), record);
@@ -151,10 +155,25 @@ public class OutboxEmitterImpl<T> implements OutboxEmitter<T>, MessagePublisherP
             }
         }
         if (key != null) {
+            // Adding OutboxMetadata replaces the one on the message: keep the ID the application may have set.
+            UUID id = message.getMetadata(OutboxMetadata.class).flatMap(OutboxMetadata::getId).orElse(null);
             return (Message<? extends T>) ((Message<Object>) message)
-                    .addMetadata(OutboxMetadata.withKey(key));
+                    .addMetadata(OutboxMetadata.withId(id, key));
         }
         return message;
+    }
+
+    /**
+     * The one place the outbox ID is assigned, before anything reads it: the direct send in fallback mode, the
+     * converters and the store. The application's {@link OutboxMetadata#withId} wins over an ID the mapper set.
+     */
+    private static void assignId(OutboxRecord record, Message<?> message) {
+        Optional<UUID> requested = message.getMetadata(OutboxMetadata.class).flatMap(OutboxMetadata::getId);
+        if (requested.isPresent()) {
+            record.setId(requested.get());
+        } else if (record.getId() == null) {
+            record.setId(UUID.randomUUID());
+        }
     }
 
     private void extractMetadata(OutboxRecord record, Message<?> message) {
