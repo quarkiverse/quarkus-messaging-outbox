@@ -2,7 +2,6 @@ package io.quarkiverse.messaging.outbox.jackson;
 
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Priority;
@@ -40,7 +39,6 @@ public class JacksonOutboxRecordMapper implements OutboxRecordMapper {
     @Override
     public OutboxRecord toRecord(String channel, Message<?> message) {
         OutboxRecord record = new OutboxRecord();
-        record.setId(UUID.randomUUID());
         record.setChannel(channel);
         record.setStatus(OutboxRecord.STATUS_PENDING);
 

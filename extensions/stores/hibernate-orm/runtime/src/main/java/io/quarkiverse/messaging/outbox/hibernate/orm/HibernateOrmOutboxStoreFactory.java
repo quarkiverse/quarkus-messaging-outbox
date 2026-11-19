@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.transaction.TransactionSynchronizationRegistry;
@@ -18,6 +19,7 @@ import io.quarkus.hibernate.orm.PersistenceUnit;
 import io.smallrye.common.annotation.Identifier;
 
 @ApplicationScoped
+@Default
 @Identifier("hibernate-orm")
 public class HibernateOrmOutboxStoreFactory implements OutboxStore.Factory {
 

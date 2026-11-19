@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
@@ -17,6 +18,7 @@ import io.smallrye.common.annotation.Identifier;
 import io.vertx.core.Vertx;
 
 @ApplicationScoped
+@Default
 @Identifier("hibernate-reactive")
 public class HibernateReactiveOutboxStoreFactory implements OutboxStore.Factory {
 
